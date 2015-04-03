@@ -6,6 +6,8 @@ $(function() {
     logout_url = base_url + "/api-auth/logout/?next=";
     user_task_url = base_url + "/queue/usertasks/.json?page_size=10";
     user_url = base_url + "/user/?format=json";
+    task_url = base_url + "/queue/run/mgmicq.tasks.tasks.mgmic_qc_workflow/.json"
+    task_data = {"function": "mgmicq.tasks.tasks.mgmic_qc_workflow","queue": "celery","args":[],"kwargs":{},"tags":[]}
     prevlink=null;nextlink=null;
     set_auth(base_url,login_url);
     $("#aprofile").click(function(){activaTab('profile')})
@@ -20,17 +22,52 @@ $(function() {
                     return ""
                 } 
     });
-    //$('#reset_password').click(function(){$('#pass_form').toggle(!$('#pass_form').is(':visible'));});
-    //$('#user_form').submit(function(){var formData = JSON.parse($("#user_form").serializeArray());console.log(formData);return false;})
+    Handlebars.registerHelper('time_zone',function(context){
+                temp = new Date(context + " UTC")
+                return temp.toLocaleDateString() + " " + temp.toLocaleTimeString();
+    });
+    set_task_form();
 });//End of Document Ready
-
+function set_task_form(){
+    data = {"csrftoken":getCookie('csrftoken')}
+    temp = Handlebars.templates['tmpl-task']
+    $('#home').empty();
+    $('#home').append(temp(data))
+} 
+function task_submit(){
+    form_data= $('#task_form').serializeObject()
+    task_data.args = form_data.args 
+    $('#task_result').empty();
+    $.postJSON(task_url,task_data,function(data){
+        $('#task_result').empty();
+        $('#task_result').append("<pre>" + JSON.stringify(data,null, 4) + "</pre>")
+        $('#task_result').urlize();
+        //Reload task history to include the last run
+        load_task_history(user_task_url);
+        }, function(xhr,textStatus,err){
+            $('#task_result').empty();
+            $('#task_result').append("<pre>" + JSON.stringify({"ERROR":textStatus},null, 4) + "</pre>")
+        });
+    return false;
+}
+$.postJSON = function(url, data, callback,fail) {
+    return jQuery.ajax({
+        'type': 'POST',
+        'url': url,
+        'contentType': 'application/json',
+        'data': JSON.stringify(data),
+        'dataType': 'json',
+        'success': callback,
+        'error':fail
+        /*'beforeSend':function(xhr, settings){
+            xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+        }*/
+    });
+};
 function submit_user(){
-    console.log(user_url)
     $.post( user_url,$('#user_form').serializeObject(),function(data){
         data.csrftoken = getCookie('csrftoken')
         $('#profile').empty();
-        //source = $('#user-template').html()
-        //user_template = Handlebars.compile(source);
         user_template = Handlebars.templates['tmpl-user']
         $('#profile').append(user_template(data))
         $('#user_form').hide()
@@ -38,10 +75,6 @@ function submit_user(){
         $('#reset_password').click(function(){$('#pass_form').toggle(!$('#pass_form').is(':visible'));});
     })
     .fail(function(){ alert("Error Occured on User Update.")});
-    //$('#user_form').hide()
-    //$('#view_form').show()
-    //var formData = JSON.parse($("#user_form").serializeArray());
-    //console.log(formData);
     return false;
 }
 function edit_user(){
@@ -68,8 +101,6 @@ function set_auth(base_url,login_url){
         $('#user').html(data['username'].concat( ' <span class="caret"></span> '));
         $("#user").append($('<img style="border-radius:80px;">').attr("src",data['gravator_url'] + "?s=40&d=mm") );
         data.csrftoken = getCookie('csrftoken')
-        //source = $('#user-template').html()
-        //user_template = Handlebars.compile(source);
         user_template = Handlebars.templates['tmpl-user']
         $('#profile').append(user_template(data))
         $('#user_form').hide()
@@ -91,8 +122,6 @@ function load_task_history(url){
     if (prevlink == null){$('#li_prevlink').addClass("disabled");} else {$('#li_prevlink').removeClass("disabled");};
     if (nextlink == null){$('#li_nextlink').addClass("disabled");} else {$('#li_nextlink').removeClass("disabled");};
     setTaskDisplay(data);
-    //source = $('#tr-template').html();
-    //tr_template = Handlebars.compile(source);
     tr_template = Handlebars.templates['tmpl-tr']
     $('#result_tbody').html("")//clear table
     $.each(data.results, function(i, item) {
