@@ -58,10 +58,10 @@ $.postJSON = function(url, data, callback,fail) {
         'data': JSON.stringify(data),
         'dataType': 'json',
         'success': callback,
-        'error':fail
-        /*'beforeSend':function(xhr, settings){
+        'error':fail,
+        'beforeSend':function(xhr, settings){
             xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
-        }*/
+        }
     });
 };
 function submit_user(){

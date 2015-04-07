@@ -4,6 +4,14 @@
               <div style="display:none">
                   <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
              </div>
+            <div class="form-group">
+                 <label for="sample_name">Sample Name</label>
+                  <input type="text" class="form-control" name="sample_name" placeholder="Name" >
+             </div>
+            <div class="form-group">
+                 <label for="description">Description</label>
+                  <input type="text" class="form-control" name="description" placeholder="Brief Description" >
+             </div>
               <div class="form-group">
                  <label for="args">Forward Read URL</label>
                   <input type="text" class="form-control" name="args" placeholder="Forward Read URL" >
@@ -12,7 +20,7 @@
                    <label for="args">Reverse Read URL</label>
                     <input type="text" class="form-control" name="args" placeholder="Reverse Read URL" >
                </div>
-             <button type="submit" id="form_submit" class="btn btn-default pull-right">Submit Task</button>
+             <button type="submit" id="form_submit" class="btn btn-default pull-right">Submit Sample</button>
          </form>
          <div class="row" style="width:100%;clear:both;"></div>
          <div id="task_result"></div>
