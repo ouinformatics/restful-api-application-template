@@ -9,16 +9,16 @@ from fabric.api import *
 #env.host = 'test.oklahomawatersurvey.org'
 
 
-def mgmic():
+def sccsc():
     """
     Work on staging environment
     """
     env.sitename ="portal"
     env.settings = 'testing'
-    env.path = '/data/static/%(sitename)s' % env
+    env.path = '/data/static_web/%(sitename)s' % env
     env.virtpy = '%(path)s/virtpy' % env
     env.log_path = '%(path)s/log' % env
-    env.hosts = ['mgmic.oscer.ou.edu']
+    env.hosts = ['climatedata.oscer.ou.edu']
 
 
 def setup_directories():
