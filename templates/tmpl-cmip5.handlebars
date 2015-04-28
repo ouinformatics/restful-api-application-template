@@ -1,0 +1,56 @@
+<h2>Global Climate Model - CMIP5 Data Selector</h2>
+<div id="task_submit">
+  <form class="col-sm-12" id="task_form" onsubmit="return task_submit();">
+      <div style="display:none">
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
+     </div>
+    <div class="row">
+        <div class="col-sm-4 form-group">
+          <label for="sample_name">Sample Name</label>
+          <input type="text" class="form-control" name="sample_name" placeholder="Name" >
+        </div>
+        <div class="col-sm-6 form-group">
+          <label for="description">Type</label>
+          <input type="text" class="form-control" name="sample_type" placeholder="Sample Type" >
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-9 form-group">
+            <label for="corrosion">In Situ Corrosion Level </label>&nbsp;&nbsp;
+            <label class="radio-inline">
+              <input type="radio" name="corrosion" value="High">High
+            </label>
+            <label class="radio-inline">
+              <input type="radio" name="corrosion" value="Moderate">Moderate
+            </label>
+            <label class="radio-inline">
+              <input type="radio" name="corrosion" value="Low">Low
+            </label>
+            <label class="radio-inline active">
+              <input type="radio" name="corrosion" value="Unkown" checked="">Unknown
+            </label>        
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-4 form-group">
+          <label for="latitude">Latitude</label>
+          <input type="text" class="form-control" name="latitude" placeholder="Latitude" >
+        </div>
+        <div class="col-sm-4 form-group">
+          <label for="longitude">Longitude</label>
+          <input type="text" class="form-control" name="longitude" placeholder="Longitude" >
+        </div>
+    </div>
+      <div class="form-group">
+         <label for="args">Forward Read URL</label>
+          <input type="text" class="form-control" name="args" placeholder="Forward Read URL" >
+     </div>
+      <div class="form-group">
+           <label for="args">Reverse Read URL</label>
+            <input type="text" class="form-control" name="args" placeholder="Reverse Read URL" >
+       </div>
+     <button type="submit" id="form_submit" class="btn btn-default pull-right">Submit Sample</button>
+ </form>
+ <div class="row" style="width:100%;clear:both;"></div>
+ <div id="task_result"></div>
+</div>
