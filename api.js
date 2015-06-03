@@ -8,7 +8,7 @@ $(function() {
     user_url = base_url + "/user/?format=json";
     task_url = base_url + "/queue/run/cscq.data.concat.ncrcat/.json"
     task_data = {"function": "cscq.data.concat.ncrcat","queue": "celery","args":[],"kwargs":{},"tags":[]}
-    prevlink=null;nextlink=null;
+    prevlink=null;nextlink=null;meta_variable=null;
     set_auth(base_url,login_url);
     $("#aprofile").click(function(){activaTab('profile')})
     $("#alogout").click(function(){window.location = logout_url.concat(document.URL);})
@@ -17,7 +17,7 @@ $(function() {
     $('#nextlink').click(function(){load_task_history(nextlink);});
     Handlebars.registerHelper('json_metatags', function(context) {
                 if (typeof context !== 'undefined') {
-                    return JSON.stringify(context).replace(/"/g,'').replace(/\[/g,'').replace(/\]/g,'').replace(/,/g,', ');
+                    return JSON.stringify(context).replace(/"/g,'').replace(/\//g,'').replace(/\[/g,'').replace(/\]/g,'').replace(/,/g,', ');
                 }else{
                     return ""
                 } 
@@ -27,8 +27,20 @@ $(function() {
     all_model=[];
 });//End of Document Ready
 function task_submit(){
-    form_data= $('#task_form').serializeObject()
-    task_data.args = form_data.args 
+    form_data= $('#cmip5_form').serializeObject()
+    //console.log(form_data);
+    //console.log(form_data.args);
+    //parameter,domain,experiment,model,ensemble
+    task_data.args =[form_data.parameter,form_data.domain,form_data.experiment,all_model,form_data.ensemble];
+    keys=["Parameter","Domain","Experiment","Models","Ensemble"]
+    //result={}
+    for (i = 0; i < keys.length; i++) {
+        task_data.tags.push(keys[i] + ' = ' + task_data.args[i])
+       //result[keys[i]] = task_data.args[i];
+    }
+    //console.log(result)
+    //task_data.tags = [JSON.stringify(result).replace(/"/g,'')]
+    //console.log(task_data);
     $('#task_result').empty();
     $.postJSON(task_url,task_data,function(data){
         $('#task_result').empty();
@@ -50,10 +62,10 @@ $.postJSON = function(url, data, callback,fail) {
         'data': JSON.stringify(data),
         'dataType': 'json',
         'success': callback,
-        'error':fail
-        /*'beforeSend':function(xhr, settings){
+        'error':fail,
+        'beforeSend':function(xhr, settings){
             xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
-        }*/
+        }
     });
 };
 function set_cmip5_form(){
@@ -117,30 +129,38 @@ function set_cmip5_ensemble(){
 }
 function set_result(){
     $('#task_result').empty()
-    url = "http://data.southcentralclimate.org/api/catalog/data/data_portal/cmip5_files/.json?page_size=0&"
+    url = base_url + "/catalog/data/data_portal/cmip5_file/.json?page_size=0&"
     query = "{'spec':{'variable':'" + $('#parameter').val() + "','domain':'" + $('#domain').val() +  "','experiment':'" + $('#experiment').val()
     if ($('#model').val()=="all"){
-        query = query + "','ensemble':'" + $('#ensemble').val() +  "'},'$orderby':{'time':1}}"
+        query = query + "','ensemble':'" + $('#ensemble').val() +  "'},'sort':[('time',1)]}"
     }else{
-        query = query + "','ensemble':'" + $('#ensemble').val() + "','model':'" + $('#model').val() + "'},'$orderby':{'time':1}}"
+        query = query + "','ensemble':'" + $('#ensemble').val() + "','model':'" + $('#model').val() + "'},'sort':[('time',1)]}"
     }
     $.getJSON(url + "query=" + query, function(data){
         var totalsize = 0;
         var models =[]
         $.each(data.results,function(key,item){
             var temp="";
-            //console.log(item);
-            models.push(item.model);
+            //Added check for dups. No unique cross browser support
+            if (models.indexOf(item.model)<0){
+                models.push(item.model);
+            }
             temp = item.size;
             temp = temp.replace("K",'');
             totalsize=totalsize + +temp ;   
         });
-        all_model= $.unique(models)
+        //all_model= $.unique(models) Removed due to cross browser support
+        all_model = models
         $('#task_result').append("<pre>Total Size = " + totalsize.toString() + "  "  + JSON.stringify(data, null, 4) + "</pre>")
     });
 }
 function set_cmip5_select(variable,query,selectID){
-    url="http://data.southcentralclimate.org/api/catalog/data/data_portal/cmip5_files/.json?action=distinct&field=" + variable
+    if(!meta_variable){
+        $.getJSON(base_url + "/catalog/data/data_portal/variable/.json?page_size=0&",function(data){
+            meta_variable = data.results
+        });
+    }
+    url= base_url + "/catalog/data/data_portal/cmip5_file/.json?action=distinct&field=" + variable
     if (query != null){
         url = url + "&query=" + query
     }
@@ -151,12 +171,28 @@ function set_cmip5_select(variable,query,selectID){
             all_model = data.sort();
         }
         $.each(data.sort(), function(key, value) {
-            $('#'+ selectID)
+            meta = get_metadata(meta_variable,value)
+            if(!meta){ 
+              $('#'+ selectID)
                 .append($("<option></option>")
                 .attr("value",value)
                 .text(value));
+            }else{
+              $('#'+ selectID)
+                 .append($("<option></option>")
+                 .attr("value",value)
+                 .text(meta.label));
+            }
         });
     });
+}
+function get_metadata(array,value){
+    data = $.grep(array,function(item){return item.value == value;});
+    if(data.length>0){
+        return data[0]
+    }else{
+        return null;
+    }
 }
 function submit_user(){
     console.log(user_url)
