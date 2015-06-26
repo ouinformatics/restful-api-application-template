@@ -32,7 +32,7 @@ def setup():
 
 def deploy():
     copy_working_dir()
-    bounce_nginx()
+    #bounce_nginx()
 
 
 def copy_working_dir():

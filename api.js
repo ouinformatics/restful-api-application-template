@@ -7,8 +7,10 @@ $(function() {
     user_task_url = base_url + "/queue/usertasks/.json?page_size=10";
     user_url = base_url + "/user/?format=json";
     task_url = base_url + "/queue/run/mgmicq.tasks.tasks.mgmic_qc_workflow/.json"
+    task_url_file = base_url + "/queue/file-upload/"
     task_data = {"function": "mgmicq.tasks.tasks.mgmic_qc_workflow","queue": "celery","args":[],"kwargs":{},"tags":[]}
-    prevlink=null;nextlink=null;
+    prevlink=null;nextlink=null;poll_url=""
+    
     set_auth(base_url,login_url);
     $("#aprofile").click(function(){activaTab('profile')})
     $("#alogout").click(function(){window.location = logout_url.concat(document.URL);})
@@ -16,18 +18,79 @@ $(function() {
     $('#prevlink').click(function(){load_task_history(prevlink);});
     $('#nextlink').click(function(){load_task_history(nextlink);});
     Handlebars.registerHelper('json_metatags', function(context) {
-                if (typeof context !== 'undefined') {
-                    return JSON.stringify(context).replace(/"/g,'').replace(/\[/g,'').replace(/\]/g,'').replace(/,/g,', ');
-                }else{
-                    return ""
-                } 
+        if (typeof context !== 'undefined') {
+            return JSON.stringify(context).replace(/"/g,'').replace(/\[/g,'').replace(/\]/g,'').replace(/,/g,', ');
+        }else{
+            return ""
+        } 
     });
     Handlebars.registerHelper('time_zone',function(context){
-                temp = new Date(context + " UTC")
-                return temp.toLocaleDateString() + " " + temp.toLocaleTimeString();
+        temp = new Date(context + " UTC")
+        return temp.toLocaleDateString() + " " + temp.toLocaleTimeString();
     });
     set_task_form();
+    $('#results').hide()
+    options= { 
+        target: '#task_result',
+        type:'post',
+        url:task_url_file,
+        dataType: 'json',
+        beforeSubmit: validate,
+        uploadProgress: function(event, position, total, percentComplete) {
+            var percentVal = percentComplete + '%';
+            bar.width(percentVal);
+            percent.html(percentVal);
+        },
+        success: function(data) { 
+            $('#foward_url').val(data.forward_file);
+            $('#reverse_url').val(data.reverse_file);
+            $('#task_result').empty();
+            //$('#task_result').append("<h3>Task Submitted</h3>");   
+            task_submit();
+            //alert(JSON.stringify(data,null,4));
+        } 
+    };
+   bar = $('.bar');
+   percent = $('.percent');
+   //$("#task_form_file").ajaxForm(options);
 });//End of Document Ready
+//"task_form_file"
+function task_submit_file(){
+    //$('#task_result').append("<h3>File Upload</h3>");
+    $("#task_form_file").ajaxSubmit(options);
+    return false;
+}
+function validate(formData, jqForm, options) {
+    $('#results').show() 
+    var forwardValue = $('input[name=forward_file]').fieldValue(); 
+    var reverseValue = $('input[name=reverse_file]').fieldValue();
+    if (!$('#sample_name').val()){
+        alert('Please provide Sample Name.'); 
+        return false;   
+    } 
+    if (!forwardValue[0] || !reverseValue[0]) { 
+        alert('Please input both Forward Read and Reverse Read files.'); 
+        return false; 
+    } 
+    $('#task_submit').hide()
+}
+function validate_url(){
+    $('#results').show()
+    if (!$('#sample_name').val()){
+        alert('Please provide Sample Name.');
+        return false;
+    }
+    if(!$('#foward_url').val() || !$('#reverse_url').val()){
+        alert('Please provide both Forward and Reverse urls or Forward and Reverse file upload.');
+        return false;
+    }
+    $('#task_submit').hide()
+    return true;
+}
+function success_file(data){
+    
+
+}
 function set_task_form(){
     data = {"csrftoken":getCookie('csrftoken')}
     temp = Handlebars.templates['tmpl-task']
@@ -35,6 +98,9 @@ function set_task_form(){
     $('#home').append(temp(data))
 } 
 function task_submit(){
+    if (!validate_url()){
+        return false;
+    }
     form_data= $('#task_form').serializeObject()
     task_data.args = form_data.args 
     $('#task_result').empty();
@@ -44,11 +110,27 @@ function task_submit(){
         $('#task_result').urlize();
         //Reload task history to include the last run
         load_task_history(user_task_url);
+        poll_url=data.result_url + "/.json";
+        poll();
         }, function(xhr,textStatus,err){
             $('#task_result').empty();
             $('#task_result').append("<pre>" + JSON.stringify({"ERROR":textStatus},null, 4) + "</pre>")
         });
     return false;
+}
+function poll() {
+       $.ajax({ url:poll_url , success: function(data) {
+            console.log(data);
+            if (data.result.status=="PENDING"){
+                $('#task_result').empty();
+                $('#task_result').append("<pre>" + JSON.stringify(data.result,null, 4) + "</pre>")
+                setTimeout(function() { poll(); }, 3000);
+            }else{
+                $('#task_result').empty();
+                $('#task_result').append("<pre>" + JSON.stringify(data.result,null, 4) + "</pre>");
+                $('#task_result').urlize();
+            }
+       }});
 }
 $.postJSON = function(url, data, callback,fail) {
     return jQuery.ajax({
