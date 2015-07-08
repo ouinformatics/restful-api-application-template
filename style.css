@@ -1,6 +1,13 @@
-/*form { display: block; margin: 20px auto; background: #eee; border-radius: 10px; padding: 15px }*/
+.form1 { display: block;  background: #eee; border-radius: 10px; margin-bottom:5px; padding-bottom: 8px;}
+#task_form_file{margin-top:0px;margin-bottom:0px;}
 body {background-color:#ebebeb;}
 #results { margin-left: 5px; }
+.min_bottom{margin-bottom:0px;}
+.float-btn{margin-top:25px;}
+.btn-group-vertical > button{
+    margin-bottom:10px;
+    border-radius:10px !important;
+}
 #user{
     padding-top: 10px;
     padding-bottom: 10px;
@@ -8,26 +15,31 @@ body {background-color:#ebebeb;}
 .nav-tabs {
     margin-bottom: -1px;
 }
+li {margin-left: 10px;}
 a {
     color:#1876BA;
 }
 .dropdown {
-  width:120%; 
-}/*
-.btn{
- width: 100%;
-}*/
+  width:120%;
+}
+.form-group {
+   margin-bottom: 5px;
+}
 #myTabContent {
-    min-height: 500px;
+    min-height: 660px;
+    border-radius: 10px;
 }
 #myTabContent1 {
-    min-height: 225px;
+    min-height: 205px;
+    border-radius: 10px;
+    margin-bottom: 5px;
 }
 .tabbable {
     margin: 10px;
+    margin-bottom: 0px;
     /*min-height: 300px;*/
     overflow: hidden;
-    border-bottom: 1px solid #ccc;
+    /*border-bottom: 1px solid #ccc;*/
 }
 
 .nav-tabs {
@@ -37,7 +49,7 @@ a {
 .tab-content {
     /*overflow-y:scroll;
     height: 100%; */
-    border-left: 1px solid #ccc ; 
+    border-left: 1px solid #ccc ;
     border-right: 1px solid #ccc;
     border-top:1px solid #ccc;
     padding:10px;
@@ -64,10 +76,10 @@ a {
    margin: 0 0 0 20px;
 }
 
-input[type=number]::-webkit-inner-spin-button, 
-input[type=number]::-webkit-outer-spin-button { 
-  -webkit-appearance: none; 
-  margin: 0; 
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 .form-group.required .control-label:after {
   content:"  *";
@@ -79,3 +91,8 @@ input[type=number]::-webkit-outer-spin-button {
 .progress { position:relative; width:400px; border: 1px solid #ddd; padding: 1px; border-radius: 3px;height:30px; }
 .bar { background-color: #B4F5B4; width:0%; height:100%; border-radius: 3px; }
 .percent { position:absolute; display:inline-block; top:3px; left:48%; }
+.nav > li > a {
+    position: relative;
+    display: block;
+    padding: 3px 15px;
+}

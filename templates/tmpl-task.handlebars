@@ -1,5 +1,5 @@
 <div id="task_submit">
-  <form class="col-sm-12" id="task_form" onsubmit="return task_submit();">
+  <form class="col-sm-12 form1" id="task_form" onsubmit="return task_submit();">
       <div style="display:none">
           <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
      </div>
@@ -108,7 +108,17 @@
           <input type="number" size="10" class="form-control input-sm" min="0" step="1" name="propionate" placeholder="Propionate (nM)" >
         </div>
     </div>
-    <div role="tabpanel" class="tabbable" >
+    <div class="row">
+      <div class="col-sm-4 form-group" style="padding-top:5px;">
+        <label for="fgs">Functional Gene Search</label>
+
+        <input id="visual_fgs" type="text" class="form-control input-sm col-sm-2"  value="" style="float:right " readonly/>
+      </div>
+      <div class="col-sm-3 form-group float-btn">
+        <button id="fgs_btn" type="button" class="btn btn-default">Gene Database</button>
+      </div>
+    </div>
+    <div role="tabpanel" class="tabbable" style="clear:both;" >
      <ul id='myTa' class="nav nav-tabs  " role="tablist">
         <li role="presentation" class="active"><a href="#url" aria-controls="url" role="tab" data-toggle="tab">Data Url</a></li>
         <li role="presentation"><a href="#upload" aria-controls="upload" role="tab" data-toggle="tab">Upload Data</a></li>
@@ -128,11 +138,10 @@
                 </div>
             </div>
             <button type="submit" id="form_submit" class="btn btn-default pull-right">Submit Sample</button>
+           </form>
         </div>
-        
-        </form>
         <div role="tabpanel" class="tab-pane fade" id="upload">
-            <form class="col-sm-12" id="task_form_file" onsubmit="return task_submit_file();">
+            <form class="col-sm-12 form1" id="task_form_file" onsubmit="return task_submit_file();">
                 <div style="display:none">
                     <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
                 </div>
@@ -149,17 +158,24 @@
                     </div>
                 </div>
                 <button type="submit" id="form_submit" class="btn btn-default pull-right">Submit Sample</button>
-            </form>
-        </div>
-    </div>
+             </form>
+          </div>
+     </div>
   </div>
 </div>
-<div id="results" class="row" style="width:100%;clear:both;">
+<div id="output">
   <h3>Sample Submitted</h3>
-  <h4>File Upload</h4>
-  <div class="progress">
-    <div class="bar"></div >
-    <div class="percent">0%</div >
+  <button id="newSample" type="button" class="btn btn-default" style="float:right;margin-right:20px;" disabled>Submit Another Sample</button>
+  <div id="file-up" class="col-md-9">
+    <h4>File Upload</h4>
+    <div class="progress">
+      <div class="bar"></div>
+      <div class="percent">0%</div>
+    </div>
   </div>
-  <div id="task_result"></div>
+
+  <div id="results" class="col-md-9" style="clear:both;">
+    <div id="task_result"></div>
+  </div>
+
 </div>
