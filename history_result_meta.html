@@ -1,0 +1,218 @@
+<html>
+<head lang="en">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <title>Application</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Bootstrap Template">
+    <meta name="Mark Stacy" content="OU IT Informatics">
+    <link rel="stylesheet" href="http://mgmic.oscer.ou.edu/portal/bower_components/boostrap_style/flatly/bootstrap.min.css">
+    <!--<link rel="stylesheet" href="http://mgmic.oscer.ou.edu/portal/style.css">-->
+</head>
+<body style="padding:5px;">
+  <div class="panel panel-default" >
+  <!-- Default panel contents -->
+    <div class="panel-heading"><b>Workflow Status</b> <span style="float:right;">Task ID: {{ task_id }}</span></div>
+      <table class="table table-striped table-condensed" style="border-radius:10px;">
+    <!--<thead>
+      <tr>
+        <th>Workflow</th>
+        <th>Status</th>
+      </tr>
+    </thead>-->
+      <tbody>
+        <tr id="qc"class="" style="margin:1px;">
+          <td class="col-sm-4" >Quality Control</td>
+          <td class="">WAITING </td>
+        </tr>
+        <tr id="s16"class="">
+          <td>16S Classification</td>
+          <td>WAITING </td>
+        </tr>
+        <tr id="aray" class="">
+          <td>Assemble Ray</td>
+          <td>WAITING </td>
+        </tr>
+        <tr id="fgs" class="">
+          <td>Functional Gene Search</td>
+          <td>WAITING </td>
+        </tr>
+        <tr id="report" class="">
+          <td>Report Generation</td>
+          <td>WAITING </td>
+        </tr>
+      </tbody>
+      </table>
+    </div>
+    <div id="task_result"></div>
+</body>
+<script src="http://mgmic.oscer.ou.edu/portal/bower_components/jquery/dist/jquery.min.js"></script>
+<script type="text/javascript" src="http://mgmic.oscer.ou.edu/portal/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="http://mgmic.oscer.ou.edu/portal/bower_components/handlebars/handlebars.runtime.min.js"></script>
+<script src="http://mgmic.oscer.ou.edu/portal/jquery.form.js"></script>
+<!--<script src="api.js"></script>-->
+<script src="http://mgmic.oscer.ou.edu/portal/templates.js"></script>
+<script>
+$(function() {
+    qs = $.parseQuerystring();
+    total_fgs=0;curent_fgs=0;
+    poll_url = "http://mgmic.oscer.ou.edu/api/queue/task/" + qs.task_id + "/.json";
+    result_obj=null;
+    poll();
+});
+function set_workflow_status(id,data){
+    temp = Handlebars.templates['tmpl-status']
+    $('#' + id + " td:nth-child(2)").html(temp(data))
+}
+function poll() {
+       $.ajax({ url:poll_url , success: function(data) {
+            //console.log(data);
+            if (data.result.status=="PENDING"){
+                $('#task_result').empty();
+                $('#task_result').append("<pre>" + JSON.stringify(data.result,null, 4) + "</pre>")
+                setTimeout(function() { poll(); }, 3000);
+            }else{
+                if (data.result.status=="SUCCESS"){
+                  set_workflow_status('qc',{status:data.result.status,progress_display:"none",success_display:"inline"})
+                  $('#qc').addClass("success")
+                  subtask_poll(data)
+                }else{
+                  set_workflow_status('qc',{status:data.result.status,progress_display:"none",success_display:"none"})
+                  $('#qc').addClass("danger")
+                }
+                $('#task_result').empty();
+                temp = data.result;
+                delete temp.children;
+                result_obj=temp;
+                $('#task_result').append("<pre>" + JSON.stringify(temp,null, 4) + "</pre>");
+                $('#task_result').urlize();
+                //$('#task_result').append("<pre>" + JSON.stringify(data.result,null, 4) + "</pre>");
+                //$('#task_result').urlize();
+            }
+       }});
+}
+function subtask_poll(data){
+  children = data.result.children
+  len = children.length;
+  idx=0
+  //total_fgs = len-3
+  try{
+    s16_id =children[1][0][0]
+    idx++;
+    poll_subtask(s16_id,'s16');
+  }catch(err) {
+    sts = "No subtask for 16S Classification"
+    set_workflow_status("s16",{status:sts,progress_display:"none",success_display:"none"})
+  }
+  try{
+    aray_id = children[0][0][0]
+    idx++;
+    poll_subtask(aray_id,'aray');
+  }catch(err) {
+    sts = "No subtask for Assemble Ray"
+    set_workflow_status("aray",{status:sts,progress_display:"none",success_display:"none"})
+  }
+  try{
+    report_id=children[len-1][0][0]
+    poll_subtask(report_id,'report');
+  }catch(err){
+    sts="No subtask for report generation"
+    set_workflow_status("report",{status:sts,progress_display:"none",success_display:"none"});
+  }
+  //s16_id =children[1][0][0]
+  //aray_id = children[0][0][0]
+  fgs_id=[]
+  for (i = idx; i < len -2 ; i++) {
+    total_fgs++;
+    fgs_id.push(children[i][0][0])
+  }
+  if (fgs_id.length==0){
+    set_workflow_status("fgs",{status:"None Submitted.",progress_display:"none",success_display:"none"});
+  }
+  $.each(fgs_id,function(idx,value){ poll_subtask(value,'fgs') });
+}
+function poll_subtask(task_id,html_id){
+   $.ajax({ url:"http://mgmic.oscer.ou.edu/api/queue/task/" + task_id + "/.json" , success: function(data) {
+        if (data.status=="PENDING"){
+          if(html_id=="fgs"){
+            sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed"
+            set_workflow_status(html_id,{status:sts,progress_display:"inline",success_display:"none"})
+          }else{
+            set_workflow_status(html_id,{status:data.status,progress_display:"inline",success_display:"none"})
+          }
+          setTimeout(function() { poll_subtask(task_id,html_id); }, 3000);
+        }else if (data.status=="RETRY"){
+          //console.log(data.children[0][0][0]);
+          setTimeout(function() { poll_subtask(data.children[0][0][0],html_id); }, 3000);
+        }else{
+          if (data.status=="SUCCESS"){
+            if(html_id=="fgs"){
+              curent_fgs = curent_fgs +1;
+              sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed"
+              if (curent_fgs == total_fgs){
+                  set_workflow_status(html_id,{status:sts,progress_display:"none",success_display:"inline"})
+                  $('#' + html_id).addClass("success")
+              }else{
+                  sts = "PENDING " + curent_fgs + " out of " + total_fgs + " Completed"
+                  set_workflow_status(html_id,{status:sts,progress_display:"inline",success_display:"none"})
+              }
+            }else if(html_id=="report"){
+               data_url = result_obj.result;
+               data_report_url = data.result;
+               delete result_obj.result;
+               result_obj.data=data_url;
+               result_obj.report= data_report_url;
+               //result_obj.result ={"data":data_url,"report":data_report_url}
+               $('#task_result').empty();
+               $('#task_result').append("<pre>" + JSON.stringify(result_obj,null, 1) + "</pre>");
+               $('#task_result').urlize();
+               set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"inline"})
+               $('#' + html_id).addClass("success")
+            }else{
+              set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"inline"})
+              $('#' + html_id).addClass("success")
+            }
+          }else{
+            if(html_id=="fgs"){
+              sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed"
+              set_workflow_status(html_id,{status:sts,progress_display:"none",success_display:"none"})
+              $('#' + html_id).addClass("danger")
+            }else{
+              set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"none"})
+              $('#' + html_id).addClass("danger")
+            }
+          }
+        }}});
+
+}
+jQuery.fn.urlize = function() {
+    if (this.length > 0) {
+        this.each(function(i, obj){
+            // making links active
+            var x = $(obj).html();
+            var list = x.match( /\b(http:\/\/|www\.|http:\/\/www\.)[^ <]{2,200}\b/g );
+            if (list) {
+                for ( i = 0; i < list.length; i++ ) {
+                    var prot = list[i].indexOf('http://') === 0 || list[i].indexOf('https://') === 0 ? '' : 'http://';
+                    x = x.replace( list[i], "<a target='_blank' href='" + prot + list[i] + "'>"+ list[i] + "</a>" );
+                }
+
+            }
+            $(obj).html(x);
+        });
+    }
+};
+jQuery.extend({
+    parseQuerystring: function() {
+        var nvpair = {};
+        var qs = window.location.search.replace('?', '');
+        var pairs = qs.split('&');
+        $.each(pairs, function(i, v) {
+            var pair = v.split('=');
+            nvpair[pair[0]] = pair[1];
+        });
+        return nvpair;
+    }
+});
+</script>
+</hmtl>
