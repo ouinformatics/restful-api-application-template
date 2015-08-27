@@ -10,7 +10,7 @@ $(function() {
     task_url_file = base_url + "/queue/file-upload/";
     gene_database_url = base_url + "/catalog/data/data_portal/gene_database/.json?page_size=0"
     task_data = {"function": "mgmicq.tasks.tasks.mgmic_qc_workflow","queue": "celery","args":[],"kwargs":{},"tags":[]};
-    prevlink=null;nextlink=null;poll_url="";total_fgs=null;curent_fgs=0;
+    prevlink=null;nextlink=null;poll_url="";total_fgs=null;curent_fgs=0;result_obj=null;
     total_fgs_dbs=[]
     set_auth(base_url,login_url);
 
@@ -75,6 +75,10 @@ $(function() {
       //$('#visual_fgs').text(temp.join())
       //alert("say something!")
     });
+    $('#myModal').on('hidden.bs.modal', function () {
+       $('#my-modal-body').empty();
+    });
+
 });//End of Document Ready
 function load_gene_database(){
   $.getJSON(gene_database_url,function(data){
@@ -224,6 +228,7 @@ function poll() {
                 };
                 temp = data.result;
                 delete temp.children;
+                result_obj=temp;
                 $('#task_result').append("<pre>" + JSON.stringify(temp,null, 4) + "</pre>");
                 $('#task_result').urlize();
             };
@@ -251,10 +256,17 @@ function subtask_poll(data){
     sts = "No subtask for Assemble Ray";
     set_workflow_status("aray",{status:sts,progress_display:"none",success_display:"none"});
   };
+  try{
+    report_id=children[len-1][0][0]
+    poll_subtask(report_id,'report');
+  }catch(err){
+    sts="No subtask for report generation"
+    set_workflow_status("report",{status:sts,progress_display:"none",success_display:"none"});
+  };
   //s16_id =children[1][0][0]
   //aray_id = children[0][0][0]
   fgs_id=[];
-  for (i = idx; i < len -1 ; i++) {
+  for (i = idx; i < len -2 ; i++) {
     total_fgs++;
     fgs_id.push(children[i][0][0]);
   };
@@ -277,6 +289,9 @@ function poll_subtask(task_id,html_id){
             set_workflow_status(html_id,{status:data.status,progress_display:"inline",success_display:"none"});
           }
           setTimeout(function() { poll_subtask(task_id,html_id); }, 3000);
+        }else if (data.status=="RETRY"){
+          //console.log(data.children[0][0][0]);
+          setTimeout(function() { poll_subtask(data.children[0][0][0],html_id); }, 3000);
         }else{
           if (data.status=="SUCCESS"){
             if(html_id=="fgs"){
@@ -289,6 +304,16 @@ function poll_subtask(task_id,html_id){
                   sts = "PENDING " + curent_fgs + " out of " + total_fgs + " Completed";
                   set_workflow_status(html_id,{status:sts,progress_display:"inline",success_display:"none"});
               }
+            }else if(html_id=="report"){
+              data_url = result_obj.result;
+              data_report_url = data.result;
+              delete result_obj.result;
+              result_obj.data=data_url;
+              result_obj.report= data_report_url;
+              //result_obj.result ={"data":data_url,"report":data_report_url}
+              $('#task_result').empty();
+              $('#task_result').append("<pre>" + JSON.stringify(result_obj,null, 1) + "</pre>");
+              $('#task_result').urlize();
             }else{
               set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"inline"});
               $('#' + html_id).addClass("success");
@@ -416,6 +441,9 @@ function showResult(url){
         template = Handlebars.templates['tmpl-history-result'];
         blob = new Blob([template(data)], {type : 'text/html'});
         iframe_url =URL.createObjectURL(blob);
+        $('#my-modal-body').empty();
+        template =  Handlebars.templates['tmpl-iframe'];
+        $('#my-modal-body').append(template({}));
         $('#myIframe').attr('src',iframe_url);
         //json_data = JSON.stringify(data,null, 4);
         //$("#myModalbody").html(json_data);
