@@ -435,9 +435,16 @@ function setTaskDisplay(data){
     };
 
 };
-function showResult(url){
-    //myModalLabel -->title
-    $.getJSON(url + ".json" , function(data){
+function showResult(task_id){
+    //clear
+    $('#my-modal-body').empty();
+    //set iframe url
+    iframe_url = 'http://mgmic.oscer.ou.edu/portal/history_result_meta.html?task_id=' + task_id //257fc120-ff53-495d-95c0-246ebc85e20e
+    template =  Handlebars.templates['tmpl-iframe'];
+    $('#my-modal-body').append(template({}));
+    $('#myIframe').attr('src',iframe_url);
+    $("#myModal").modal('show');
+    /*$.getJSON(url + ".json" , function(data){
         template = Handlebars.templates['tmpl-history-result'];
         blob = new Blob([template(data)], {type : 'text/html'});
         iframe_url =URL.createObjectURL(blob);
@@ -449,7 +456,7 @@ function showResult(url){
         //$("#myModalbody").html(json_data);
         //$("#myModalbody").urlize();
         $("#myModal").modal('show');
-    });
+    });*/
 };
 function select_fgs(){
     $("#myModal_gene").modal('show');
