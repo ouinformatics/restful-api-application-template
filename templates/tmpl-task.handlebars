@@ -1,10 +1,6 @@
 <div id="task_submit">
-  <form class="col-sm-12 form1" id="task_form" onsubmit="return task_submit();">
-      <div style="display:none">
-          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
-     </div>
-    <div class="row">
-        <div class="col-sm-9 form-group">
+  <div class="row">
+    <div class="col-sm-9 form-group">
             <label for="sample-type">Sample Type</label>
             <label class="radio-inline active">
               <input type="radio" name="sample-type" value="metagenome" checked="">Metagenome
@@ -14,6 +10,12 @@
             </label>
         </div>
     </div>
+ <div id="hide_metagenomic">
+  <form class="col-sm-12 form1" id="task_form" onsubmit="return task_submit();">
+      <div style="display:none">
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
+          <input type="hidden" name="sample-type" value="metagenome"/>
+     </div>
     <div class="row">
         <div class="col-sm-4 form-group required">
           <label class="control-label" for="sample_name">Sample Name</label>
@@ -162,6 +164,70 @@
           </div>
      </div>
   </div>
+ </div> <!--End of metgenomic-->
+ <div id="hide_amplicon">
+    <div role="tabpanel" class="tabbable" style="clear:both;" >
+     <ul id='myTa' class="nav nav-tabs  " role="tablist">
+        <li role="presentation" class="active"><a href="#url" aria-controls="url" role="tab" data-toggle="tab">Data Url</a></li>
+        <li role="presentation"><a href="#upload" aria-controls="upload" role="tab" data-toggle="tab">Upload Data</a></li>
+      </ul>
+      <div id="myTabContent1" class="tab-content" style="margin-bottom:0px">
+        <div role="tabpanel" class="tab-pane fade in active" id="url">
+            <div class="row">
+                <div class="form-group required col-sm-9">
+                    <label class="control-label" for="args">Forward Read URL</label>
+                    <input id="foward_url" type="text" class="form-control input-sm" name="args" placeholder="Forward Read URL" >
+                </div>
+            </div>
+            <div class="row">
+               <div class="form-group required col-sm-9">
+                    <label class="control-label" for="args">Reverse Read URL</label>
+                    <input id="reverse_url" type="text" class="form-control input-sm" name="args" placeholder="Reverse Read URL" >
+                </div>
+            </div>
+            <button type="submit" id="form_submit" class="btn btn-default pull-right">Submit Sample</button>
+           </form>
+        </div>
+        <div role="tabpanel" class="tab-pane fade" id="upload">
+            <form class="col-sm-12 form1" id="task_form_file" onsubmit="return task_submit_file();">
+                <div style="display:none">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
+                </div>
+                <div class="row">
+                    <div class="form-group required col-sm-9">
+                        <label class="control-label" for="args">Forward Read File</label>
+                        <input type="file" class="form-control file-form-control input-sm" name="forward_file" placeholder="Forward Read File" >
+                    </div>
+                </div>
+                <div class="row">
+                   <div class="form-group required col-sm-9">
+                        <label class="control-label" for="args">Reverse Read File</label>
+                        <input type="file" class="form-control file-form-control input-sm" name="reverse_file" placeholder="Reverse Read File" >
+                    </div>
+                </div>
+                <button type="submit" id="form_submit" class="btn btn-default pull-right">Submit Sample</button>
+            </form>
+        </div>
+      </div>
+    </div>    
+
+
+    <form class="col-sm-12 form1" id="amplicon_form" onsubmit="return false;">
+     <div class="row">
+        <div class="col-sm-4 form-group required">
+          <label class="control-label" for="sample_name">Sample Name</label>
+          <input id="sample_name" type="text" class="form-control input-sm" name="sample_name" placeholder="Name" >
+        </div>
+     </div> 
+     <div class="row">
+        <div class="col-sm-8 form-group required">
+          <label class="control-label" for="map_file">Map File</label>
+          <textarea rows="15" name="map_file" form="amplicon_form" style="width:100%;white-space:pre;overflow:auto;"></textarea>
+          <button type="submit" class="btn btn-default pull-right">Check Map File</button>
+        </div>
+     </div>
+    </form>   
+ </div> <!--End of amplicon-->
 </div>
 <div id="output">
   <h3>Sample Submitted</h3>
@@ -169,13 +235,13 @@
   <div id="file-up" class="col-md-9">
     <h4>File Upload</h4>
     <div class="progress">
-      <div class="bar"></div>
-      <div class="percent">0%</div>
+      <div class="bar">
     </div>
+    <div class="percent">0%</div>
   </div>
+</div>
 
-  <div id="results" class="col-md-9" style="clear:both;">
+<div id="results" class="col-md-9" style="clear:both;">
     <div id="task_result"></div>
-  </div>
-
+</div>
 </div>
