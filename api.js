@@ -1,6 +1,7 @@
 $(function() {
     //Customize by setting base_url to cybercom/api docker application
-    base_url = "http://mgmic.oscer.ou.edu/api";
+    //base_url = "http://mgmic.oscer.ou.edu/api";
+    base_url = "http://192.168.99.100/api";
     //No other alterations is need to get the standard applicaiton running!
     login_url = base_url + "/api-auth/login/?next=";
     logout_url = base_url + "/api-auth/logout/?next=";
@@ -77,6 +78,19 @@ $(function() {
     });
     $('#myModal').on('hidden.bs.modal', function () {
        $('#my-modal-body').empty();
+    });
+    // Sample type determine which form is visible
+    $("#hide_amplicon").hide();
+    $('input:radio[name=sample-type]').change(function(){
+        if (this.value == 'metagenome'){
+            $('#hide_metagenomic').show();
+            $("#hide_amplicon").hide();
+            console.log('metagenome');
+        }else if (this.value=='amplicon'){
+            $('#hide_metagenomic').hide()
+            $("#hide_amplicon").show()
+            console.log('amplicon');
+        }
     });
 
 });//End of Document Ready
@@ -437,7 +451,7 @@ function setTaskDisplay(data){
 };
 function showResult(task_id){
     //clear
-    $('#my-modal-body').empty();
+    //$('#my-modal-body').empty();
     //set iframe url
     iframe_url = 'http://mgmic.oscer.ou.edu/portal/history_result_meta.html?task_id=' + task_id //257fc120-ff53-495d-95c0-246ebc85e20e
     template =  Handlebars.templates['tmpl-iframe'];
@@ -505,7 +519,4 @@ function getCookie(name) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
             }
-        }
-    }
-    return cookieValue;
-};
+        }}return cookieValue;}

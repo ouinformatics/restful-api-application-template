@@ -20,6 +20,16 @@ def mgmic():
     env.log_path = '%(path)s/log' % env
     env.hosts = ['mgmic.oscer.ou.edu']
 
+def mymac():
+    """
+    Work on staging environment
+    """
+    env.sitename ="portal"
+    env.settings = 'testing'
+    env.path = '/Users/mstacy/data_munge/risser_crazy/data/static/%(sitename)s' % env
+    env.virtpy = '%(path)s/virtpy' % env
+    env.log_path = '%(path)s/log' % env
+    env.hosts = ['local']
 
 def setup_directories():
     run('mkdir -p %(path)s' % env)
@@ -29,7 +39,12 @@ def setup():
     setup_directories()
     copy_working_dir()
 
-
+def copy():
+    local('rm -rf %(path)s;mkdir %(path)s' % env)
+    local('tar --exclude fabfile.py --exclude fabfile.pyc --exclude .git -czf /tmp/deploy_%(sitename)s.tgz .' % env)
+    local('cd %(path)s;mv /tmp/deploy_%(sitename)s.tgz .;tar -xf deploy_%(sitename)s.tgz; rm deploy_%(sitename)s.tgz' % env)
+    local("docker ps | grep nginx | awk '{print $1}'|xargs docker kill")
+    local("docker run -v /Users/mstacy/data_munge/risser_crazy/data:/data -v /Users/mstacy/data_munge/risser_crazy/nginx/default.conf:/etc/nginx/conf.d/default.conf -d -p 80:80  nginx")
 def deploy():
     copy_working_dir()
     #bounce_nginx()
