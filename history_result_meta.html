@@ -71,6 +71,7 @@ function poll() {
             if (data.result.status=="PENDING"){
                 $('#task_result').empty();
                 $('#task_result').append("<pre>" + JSON.stringify(data.result,null, 4) + "</pre>")
+                set_workflow_status('qc',{status:data.result.status,progress_display:"inline",success_display:"none"})
                 setTimeout(function() { poll(); }, 3000);
             }else{
                 if (data.result.status=="SUCCESS"){
