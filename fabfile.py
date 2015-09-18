@@ -29,6 +29,7 @@ def mymac():
     env.path = '/Users/mstacy/data_munge/risser_crazy/data/static/%(sitename)s' % env
     env.virtpy = '%(path)s/virtpy' % env
     env.log_path = '%(path)s/log' % env
+    env.data_base_mount = "/Users/mstacy/data_munge/risser_crazy"
     env.hosts = ['local']
 
 def setup_directories():
@@ -41,10 +42,11 @@ def setup():
 
 def copy():
     local('rm -rf %(path)s;mkdir %(path)s' % env)
-    local('tar --exclude fabfile.py --exclude fabfile.pyc --exclude .git -czf /tmp/deploy_%(sitename)s.tgz .' % env)
-    local('cd %(path)s;mv /tmp/deploy_%(sitename)s.tgz .;tar -xf deploy_%(sitename)s.tgz; rm deploy_%(sitename)s.tgz' % env)
-    local("docker ps | grep nginx | awk '{print $1}'|xargs docker kill")
-    local("docker run -v /Users/mstacy/data_munge/risser_crazy/data:/data -v /Users/mstacy/data_munge/risser_crazy/nginx/default.conf:/etc/nginx/conf.d/default.conf -d -p 80:80  nginx")
+    local('cp -r . %(path)s;rm -rf %(path)s/.git' % env)
+    #local('tar --exclude fabfile.py --exclude fabfile.pyc --exclude .git -czf /tmp/deploy_%(sitename)s.tgz .' % env)
+    #local('cd %(path)s;mv /tmp/deploy_%(sitename)s.tgz .;tar -xf deploy_%(sitename)s.tgz; rm deploy_%(sitename)s.tgz' % env)
+    bounce_docker_nginx()
+
 def deploy():
     copy_working_dir()
     #bounce_nginx()
@@ -57,6 +59,9 @@ def copy_working_dir():
     sudo('chmod -R 775 %(path)s' % env)
     local('rm /tmp/deploy_%(sitename)s.tgz' % env)
 
+def bounce_docker_nginx():
+    local("docker ps | grep nginx | awk '{print $1}'|xargs docker kill")
+    local("docker run -v %(data_base_mount)s/data:/data -v %(data_base_mount)s/nginx/default.conf:/etc/nginx/conf.d/default.conf -d -p 80:80  nginx" % env)
 
 def bounce_nginx():
     """ Restart the nginx web server """

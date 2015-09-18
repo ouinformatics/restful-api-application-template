@@ -519,4 +519,5 @@ function getCookie(name) {
                 cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
                 break;
             }
-        }}return cookieValue;}
+        }}return cookieValue;
+}

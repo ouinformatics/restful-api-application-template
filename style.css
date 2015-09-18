@@ -34,6 +34,11 @@ a {
     border-radius: 10px;
     margin-bottom: 5px;
 }
+#myTabContent2 {
+    min-height: 275px;
+    border-radius: 10px;
+    margin-bottom: 5px;
+}
 .tabbable {
     margin: 10px;
     margin-bottom: 0px;
