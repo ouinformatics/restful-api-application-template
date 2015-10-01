@@ -41,7 +41,7 @@ def setup():
     copy_working_dir()
 
 def copy():
-    local('rm -rf %(path)s;mkdir %(path)s' % env)
+    local('rm -rf %(path)s;curl "http://192.168.99.100/portal";mkdir %(path)s' % env)
     local('cp -r . %(path)s;rm -rf %(path)s/.git' % env)
     #local('tar --exclude fabfile.py --exclude fabfile.pyc --exclude .git -czf /tmp/deploy_%(sitename)s.tgz .' % env)
     #local('cd %(path)s;mv /tmp/deploy_%(sitename)s.tgz .;tar -xf deploy_%(sitename)s.tgz; rm deploy_%(sitename)s.tgz' % env)
@@ -61,7 +61,7 @@ def copy_working_dir():
 
 def bounce_docker_nginx():
     local("docker ps | grep nginx | awk '{print $1}'|xargs docker kill")
-    local("docker run -v %(data_base_mount)s/data:/data -v %(data_base_mount)s/nginx/default.conf:/etc/nginx/conf.d/default.conf -d -p 80:80  nginx" % env)
+    local("docker run -v %(data_base_mount)s/data:/data -v %(data_base_mount)s/nginx/nginx.conf:/etc/nginx/nginx.conf -v %(data_base_mount)s/nginx/default.conf:/etc/nginx/conf.d/default.conf -d -p 80:80  nginx" % env)
 
 def bounce_nginx():
     """ Restart the nginx web server """

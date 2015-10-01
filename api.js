@@ -1,7 +1,7 @@
 $(function() {
     //Customize by setting base_url to cybercom/api docker application
-    //base_url = "http://mgmic.oscer.ou.edu/api";
-    base_url = "http://192.168.99.100/api";
+    base_url = "http://mgmic.oscer.ou.edu/api";
+    //base_url = "http://192.168.99.100/api";
     //No other alterations is need to get the standard applicaiton running!
     login_url = base_url + "/api-auth/login/?next=";
     logout_url = base_url + "/api-auth/logout/?next=";
@@ -11,6 +11,7 @@ $(function() {
     task_url_file = base_url + "/queue/file-upload/";
     gene_database_url = base_url + "/catalog/data/data_portal/gene_database/.json?page_size=0"
     task_data = {"function": "mgmicq.tasks.tasks.mgmic_qc_workflow","queue": "celery","args":[],"kwargs":{},"tags":[]};
+    amplicon_data = {"function": "mgmicq.tasks.tasks.amplicon_workflow","queue": "celery","args":[],"kwargs":{},"tags":[]};
     prevlink=null;nextlink=null;poll_url="";total_fgs=null;curent_fgs=0;result_obj=null;
     total_fgs_dbs=[]
     set_auth(base_url,login_url);
@@ -56,10 +57,48 @@ $(function() {
         success: function(data) {
             $('#foward_url').val(data.forward_file);
             $('#reverse_url').val(data.reverse_file);
-            //$('#task_result').empty();
             task_submit();
-        }
+        },
+        error: file_upload_error
+    }; 
+    check_options= {
+        type:'post',
+        url:task_url_file,
+        dataType: 'json',
+        //beforeSubmit: amplicon_validate,
+        /*uploadProgress: function(event, position, total, percentComplete) {
+            //console.log(percentComplete)
+            var percentVal = percentComplete + '%';
+            $('.bar').width(percentVal);
+            $('.percent').html(percentVal);
+        },*/
+        success: function(data) {
+            $("#map_url").val(data.map_file)
+            $('.step2_label').text(data.map_file)
+            check_map_submit_url();        
+        },
+        error: file_upload_error
     };
+    amplicon_options= {
+        target: '#task_result',
+        type:'post',
+        url:task_url_file,
+        dataType: 'json',
+        beforeSubmit: amplicon_validate,
+        uploadProgress: function(event, position, total, percentComplete) {
+            //console.log(percentComplete)
+            var percentVal = percentComplete + '%';
+            $('.bar').width(percentVal);
+            $('.percent').html(percentVal);
+        },
+        success: function(data) {
+            $('#amplicon_foward_url').val(data.forward_file);
+            $('#amplicon_reverse_url').val(data.reverse_file);
+            amplicon_task_submit();
+        },
+        error: file_upload_error
+    };
+    
     $('#newSample').click(function(){location.reload();});
     $("#fgs_btn").click(function(){select_fgs();});
     load_gene_database();
@@ -73,8 +112,6 @@ $(function() {
       console.log(temp)
       $('#visual_fgs').val(temp.join(', '))
       total_fgs_dbs=temp
-      //$('#visual_fgs').text(temp.join())
-      //alert("say something!")
     });
     $('#myModal').on('hidden.bs.modal', function () {
        $('#my-modal-body').empty();
@@ -92,13 +129,181 @@ $(function() {
             console.log('amplicon');
         }
     });
-
+    $('#check_map_url').click(function(){check_map_submit('url');});
+    $('#check_map_file').click(function(){check_map_submit('file');});
+    $('#amplicon_file_form_submit').click(function(){amplicon_submit('file');});
+    $('#amplicon_url_form_submit').click(function(){amplicon_submit('url');});
+    $('.step2').hide()
 });//End of Document Ready
+function file_upload_error(){
+    alert('Error occured communicating to API. Please submit again.');
+}
+function amplicon_submit(submit_type){
+    if (submit_type=="url"){
+        amplicon_task_submit();
+    }else{
+        amplicon_task_submit_file();
+    };
+};
+function amplicon_task_submit_file(){
+    //$("#file-up").addClass("active");
+    //set_result_template({});
+    //set_amplicon_result();
+    $("#amplicon_task_form_file").ajaxSubmit(amplicon_options);
+    return false;
+};
+function set_amplicon_result(){
+ //Set result title
+ $('#task_submit').hide();
+ $('#output').show();
+ $('#result_title').empty();
+ $('#result_title').append("<h3>Amplicon Workflow</h3>");
+ $('#result_title').append('<b>STATUS:</b> PENDING <img src="spinner.gif" id="amplicon_result_spinner" height="20" width="20" style="margin-left:2px;">');
+}
+function amplicon_task_submit(){
+    //Turn off file upload progress if nothing to upload
+    if(!$('#file-up').hasClass("active")){
+        $('#file-up').hide();
+    };
+    //set_result_template({});
+    if (!amplicon_validate_url()){
+        return false;
+    };
+    form_data= $('#amplicon_form1').serializeObject();
+    temp = $('#amplicon_form1').serializeObject();
+    delete temp.csrfmiddlewaretoken
+    delete temp.args
+    amplicon_data.args = form_data.args;
+    amplicon_data.tags = [temp]
+    //task_data.kwargs.functional_gene = total_fgs_dbs
+    $('#task_result').empty();
+    set_amplicon_result();
+    $.postJSON(base_url + "/queue/run/mgmicq.tasks.tasks.amplicon_workflow/.json",amplicon_data,function(data){
+        //Reload task history to include the last run
+        load_task_history(user_task_url);
+        //Enable button to allow for new submission
+        $('#newSample').removeAttr('disabled');
+        $('#task_result').empty();
+        $('#task_result').append("<pre>" + JSON.stringify(data,null, 4) + "</pre>");
+        $('#task_result').urlize();
+        //Poll main Task
+        amplicon_poll(data.result_url + "/.json")
+        }, function(xhr,textStatus,err){
+            $('#task_result').empty();
+            $('#task_result').append("<pre>" + JSON.stringify({"ERROR":textStatus},null, 4) + "</pre>");
+        });
+    return false;
+}
+function amplicon_poll(url){
+    $.ajax({ url:url , success: function(data) {
+            if (data.result.status=="PENDING"){
+                $('#task_result').empty();
+                $('#task_result').append("<pre>" + JSON.stringify(data.result,null, 4) + "</pre>");
+                setTimeout(function() { amplicon_poll(url); }, 3000);
+            }else{
+                $('#task_result').empty();
+                //Turn off tilte spinner
+                $('#result_title').empty();
+                $('#result_title').append("<h3>Amplicon Workflow</h3>");
+                //set result without children. Not neccesary in amplicon
+                temp = data.result;
+                delete temp.children;
+                result_obj=temp;
+                $('#task_result').append("<pre>" + JSON.stringify(temp,null, 4) + "</pre>");
+                $('#task_result').urlize();
+            };
+       }});
+}
+function amplicon_validate(){
+    if (!$('#amplicon_sample_name').val()){
+        alert('Please provide Sample Name.');
+        return false;
+    };
+    if (!$('#amplicon_task_form_file input[name="forward_file"]').val() || !$('#amplicon_task_form_file input[name="reverse_file"]').val()){
+        alert('Please provide both Forward and Reverse urls or Forward and Reverse file upload.');
+        return false;
+    }
+    $("#file-up").addClass("active");
+    set_amplicon_result();
+    return true;
+    //console.log("Write validate");
+}
+function amplicon_validate_url(){
+    if (!$('#amplicon_sample_name').val()){
+        alert('Please provide Sample Name.');
+        return false;
+    };
+    if(!$('#amplicon_foward_url').val() || !$('#amplicon_reverse_url').val()){
+        alert('Please provide both Forward and Reverse urls or Forward and Reverse file upload.');
+        return false;
+    };
+    set_amplicon_result();
+    //$('#task_submit').hide();
+    //$('#output').show();
+    return true;
+}
+function toggle_check_map_buttons(){
+    if($('#check_map_url').hasClass("disabled")){
+        $('#check_map_url').removeClass("disabled")
+        $('#check_map_file').removeClass("disabled")
+    }else{
+        $('#check_map_url').addClass("disabled")
+        $('#check_map_file').addClass("disabled")
+    }
+}
+function validate_check(check_type){
+    if(check_type=="url"){
+        return !!$('#map_url').val();
+    }else{
+        return !!$('#map_file').val();
+    }
+}
+function check_map_submit(submit_type){
+    if (submit_type=="url"){
+        if(validate_check("url")){
+            toggle_check_map_buttons();
+            check_map_submit_url();
+            $('#check_map_url_spinner').show();
+        }else{
+            alert("Please input Map File Url.");
+        }
+    }else{
+        if(validate_check("file")){
+            toggle_check_map_buttons();
+            check_map_submit_file();
+            $('#check_map_file_spinner').show();
+        }else{
+            alert("Please input Map File.");
+        }
+    }
+};
+function check_map_submit_file(){
+    $("#amplicon_task_form_file").ajaxSubmit(check_options);
+    return false;
+}
+function check_map_submit_url(){
+    data = {filename:$("#map_url").val(),"csrftoken":getCookie('csrftoken')}
+    $.post(base_url + "/mgmic/check-mapfile/.json",data,function(data){
+        if (data.status =="SUCCESS"){
+            $('.step1').hide()
+            $('.step2').show()
+            $('.step2_label').text($("#map_url").val())
+        }else{
+            alert("Please fix map file and resubmit!. \n\n" + data.log);
+            toggle_check_map_buttons();
+            $('#check_map_file_spinner').hide();
+            $('#check_map_url_spinner').hide();
+            $("#map_url").val('');
+        }
+    },"json")
+    .fail(function(){
+        alert("Error communicating with rest api server. Please re-submit Check Map File.")
+    });
+}
 function load_gene_database(){
   $.getJSON(gene_database_url,function(data){
     temp=[];
     $.each(data.results,function(key,value){
-      //console.log(value.name);
       $('#all_dbs')
           .append($("<option></option>")
           .attr("value",value.name)
@@ -131,7 +336,6 @@ function unselect_dbs(){
   });
 }
 function task_submit_file(){
-    //$('#task_result').append("<h3>File Upload</h3>");
     $("#file-up").addClass("active");
     set_result_template({});
     $("#task_form_file").ajaxSubmit(options);
@@ -198,7 +402,6 @@ function task_submit(){
     task_data.args = form_data.args;
     task_data.tags = [temp]
     task_data.kwargs.functional_gene = total_fgs_dbs
-    //["alkB.udb","bssA.udb","dsrA.udb"];
     $('#task_result').empty();
     $.postJSON(task_url,task_data,function(data){
         //Set Quality control status
@@ -238,7 +441,6 @@ function poll() {
                 }else{
                   set_workflow_status('qc',{status:data.result.status,progress_display:"none",success_display:"none"});
                   $('#qc').addClass("danger");
-                  //$('#task_result').append("<pre>" + JSON.stringify(data.result,null, 4) + "</pre>");
                 };
                 temp = data.result;
                 delete temp.children;
@@ -249,11 +451,9 @@ function poll() {
        }});
 };
 function subtask_poll(data){
-  //console.log(data)
   children = data.result.children;
   len = children.length;
   idx=0;
-  //total_fgs = len-3
   try{
     s16_id =children[1][0][0];
     idx++;
@@ -277,16 +477,11 @@ function subtask_poll(data){
     sts="No subtask for report generation"
     set_workflow_status("report",{status:sts,progress_display:"none",success_display:"none"});
   };
-  //s16_id =children[1][0][0]
-  //aray_id = children[0][0][0]
   fgs_id=[];
   for (i = idx; i < len -2 ; i++) {
     total_fgs++;
     fgs_id.push(children[i][0][0]);
   };
-  //console.log(fgs_id)
-  //poll_subtask(s16_id,'s16');
-  //poll_subtask(aray_id,'aray');
   if (fgs_id.length==0){
     set_workflow_status("fgs",{status:"None Submitted.",progress_display:"none",success_display:"none"});
   }
@@ -304,7 +499,6 @@ function poll_subtask(task_id,html_id){
           }
           setTimeout(function() { poll_subtask(task_id,html_id); }, 3000);
         }else if (data.status=="RETRY"){
-          //console.log(data.children[0][0][0]);
           setTimeout(function() { poll_subtask(data.children[0][0][0],html_id); }, 3000);
         }else{
           if (data.status=="SUCCESS"){
@@ -324,7 +518,6 @@ function poll_subtask(task_id,html_id){
               delete result_obj.result;
               result_obj.data=data_url;
               result_obj.report= data_report_url;
-              //result_obj.result ={"data":data_url,"report":data_report_url}
               $('#task_result').empty();
               $('#task_result').append("<pre>" + JSON.stringify(result_obj,null, 1) + "</pre>");
               $('#task_result').urlize();
@@ -343,7 +536,6 @@ function poll_subtask(task_id,html_id){
             }
           }
         }}});
-
 };
 $.postJSON = function(url, data, callback,fail) {
     return jQuery.ajax({
@@ -450,27 +642,12 @@ function setTaskDisplay(data){
 
 };
 function showResult(task_id){
-    //clear
-    //$('#my-modal-body').empty();
     //set iframe url
     iframe_url = 'http://mgmic.oscer.ou.edu/portal/history_result_meta.html?task_id=' + task_id //257fc120-ff53-495d-95c0-246ebc85e20e
     template =  Handlebars.templates['tmpl-iframe'];
     $('#my-modal-body').append(template({}));
     $('#myIframe').attr('src',iframe_url);
     $("#myModal").modal('show');
-    /*$.getJSON(url + ".json" , function(data){
-        template = Handlebars.templates['tmpl-history-result'];
-        blob = new Blob([template(data)], {type : 'text/html'});
-        iframe_url =URL.createObjectURL(blob);
-        $('#my-modal-body').empty();
-        template =  Handlebars.templates['tmpl-iframe'];
-        $('#my-modal-body').append(template({}));
-        $('#myIframe').attr('src',iframe_url);
-        //json_data = JSON.stringify(data,null, 4);
-        //$("#myModalbody").html(json_data);
-        //$("#myModalbody").urlize();
-        $("#myModal").modal('show');
-    });*/
 };
 function select_fgs(){
     $("#myModal_gene").modal('show');
@@ -520,4 +697,4 @@ function getCookie(name) {
                 break;
             }
         }}return cookieValue;
-}
+};
