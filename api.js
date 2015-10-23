@@ -282,8 +282,32 @@ function check_map_submit_file(){
     return false;
 }
 function check_map_submit_url(){
-    data = {filename:$("#map_url").val(),"csrftoken":getCookie('csrftoken')}
-    $.post(base_url + "/mgmic/check-mapfile/.json",data,function(data){
+    data = {filename:$("#map_url").val()} //,"csrftoken":getCookie('csrftoken')}
+    /*jQuery.ajax({
+        'type': 'POST',
+        'url': base_url + "/mgmic/check-mapfile/.json",
+        'contentType': 'application/json',
+        'data': JSON.stringify(data),
+        'dataType': 'json',
+        'success': function(data){
+          if (data.status =="SUCCESS"){
+            $('.step1').hide()
+            $('.step2').show()
+            $('.step2_label').text($("#map_url").val())
+          }else{
+            alert("Please fix map file and resubmit!. \n\n" + data.log);
+            toggle_check_map_buttons();
+            $('#check_map_file_spinner').hide();
+            $('#check_map_url_spinner').hide();
+            $("#map_url").val('');
+          }
+    	},
+        'error':function(){alert("Error communicating with rest api server. Please re-submit Check Map File.")},
+        'beforeSend':function(xhr, settings){
+            xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+        }
+    });*/
+    $.postJSON(base_url + "/mgmic/check-mapfile/.json",data,function(data){
         if (data.status =="SUCCESS"){
             $('.step1').hide()
             $('.step2').show()
@@ -295,8 +319,7 @@ function check_map_submit_url(){
             $('#check_map_url_spinner').hide();
             $("#map_url").val('');
         }
-    },"json")
-    .fail(function(){
+    },function(){
         alert("Error communicating with rest api server. Please re-submit Check Map File.")
     });
 }
