@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Bootstrap Template">
     <meta name="Mark Stacy" content="OU IT Informatics">
-    <link rel="stylesheet" href="http://mgmic.oscer.ou.edu/portal/bower_components/boostrap_style/flatly/bootstrap.min.css">
+    <link rel="stylesheet" href="bower_components/boostrap_style/flatly/bootstrap.min.css">
     <!--<link rel="stylesheet" href="http://mgmic.oscer.ou.edu/portal/style.css">-->
 </head>
 <body style="padding:5px;">
@@ -46,18 +46,18 @@
     </div>
     <div id="task_result"></div>
 </body>
-<script src="http://mgmic.oscer.ou.edu/portal/bower_components/jquery/dist/jquery.min.js"></script>
-<script type="text/javascript" src="http://mgmic.oscer.ou.edu/portal/bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-<script type="text/javascript" src="http://mgmic.oscer.ou.edu/portal/bower_components/handlebars/handlebars.runtime.min.js"></script>
-<script src="http://mgmic.oscer.ou.edu/portal/jquery.form.js"></script>
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<script type="text/javascript" src="bower_components/handlebars/handlebars.runtime.min.js"></script>
+<script src="jquery.form.js"></script>
 <!--<script src="api.js"></script>-->
-<script src="http://mgmic.oscer.ou.edu/portal/templates.js"></script>
+<script src="templates.js"></script>
 <script>
 $(function() {
     qs = $.parseQuerystring();
     $('.panel-heading span').text(" Task ID: " + qs.task_id )
     total_fgs=0;curent_fgs=0;
-    poll_url = "http://mgmic.oscer.ou.edu/api/queue/task/" + qs.task_id + "/.json";
+    poll_url = "/api/queue/task/" + qs.task_id + "/.json";
     result_obj=null;
     poll();
 });
@@ -134,7 +134,7 @@ function subtask_poll(data){
   $.each(fgs_id,function(idx,value){ poll_subtask(value,'fgs') });
 }
 function poll_subtask(task_id,html_id){
-   $.ajax({ url:"http://mgmic.oscer.ou.edu/api/queue/task/" + task_id + "/.json" , success: function(data) {
+   $.ajax({ url:"/api/queue/task/" + task_id + "/.json" , success: function(data) {
         if (data.status=="PENDING"){
           if(html_id=="fgs"){
             sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed"

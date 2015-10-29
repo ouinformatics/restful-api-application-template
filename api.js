@@ -12,7 +12,7 @@ $(function() {
     gene_database_url = base_url + "/catalog/data/data_portal/gene_database/.json?page_size=0"
     task_data = {"function": "mgmicq.tasks.tasks.mgmic_qc_workflow","queue": "celery","args":[],"kwargs":{},"tags":[]};
     amplicon_data = {"function": "mgmicq.tasks.tasks.amplicon_workflow","queue": "celery","args":[],"kwargs":{},"tags":[]};
-    prevlink=null;nextlink=null;poll_url="";total_fgs=null;curent_fgs=0;result_obj=null;
+    prevlink=null;nextlink=null;poll_url="";total_fgs=null;curent_fgs=0;result_obj=null;total_subtasks=0;total_sub_done=0
     total_fgs_dbs=[]
     set_auth(base_url,login_url);
 
@@ -29,6 +29,7 @@ $(function() {
             try{
               temp['Sample-Name'] = context[0]['sample_name'];
               temp['Sample-Type'] = context[0]['sample-type'];
+              temp['Run-Flags'] = context[0]['run_flags'];
             }catch(err) {
             };
             return JSON.stringify(temp,null, 0).replace('\n','').replace(/\\n/g,'').replace(/,/g,'\n').replace(/\{/g,'').replace(/\}/g,'').replace(/\ /g,'').replace(/:,/g,' = None').replace(/:/g,' = ').replace(/"/g,'').replace(/\[/g,'').replace(/\]/g,'').replace(/,/g,', ');
@@ -173,8 +174,14 @@ function amplicon_task_submit(){
     temp = $('#amplicon_form1').serializeObject();
     delete temp.csrfmiddlewaretoken
     delete temp.args
+    delete temp.flags
+    temp.run_flags = form_data.flags
     amplicon_data.args = form_data.args;
     amplicon_data.tags = [temp]
+    if(!form_data.flags==""){
+        amplicon_data.kwargs= {"runflags":form_data.flags};
+    }
+    console.log(amplicon_data)
     //task_data.kwargs.functional_gene = total_fgs_dbs
     $('#task_result').empty();
     set_amplicon_result();
@@ -422,9 +429,31 @@ function task_submit(){
     temp = $('#task_form').serializeObject();
     delete temp.csrfmiddlewaretoken
     delete temp.args
+    workflow = {"qc":"off","s16":"off","assemble":"off","func_gene":"off"}
+    if (form_data.hasOwnProperty("qc")){
+        workflow.qc="on";
+        delete temp.qc;
+    }
+    if (form_data.hasOwnProperty("s16")){
+        workflow.s16 = "on";
+        delete temp.s16;
+    }
+    if  (form_data.hasOwnProperty("assemble")){
+        workflow.assemble = "on";
+        delete temp.assemble;
+    }
+    if (total_fgs_dbs.length>0){
+        workflow.func_gene="on"
+        task_data.kwargs.functional_gene = total_fgs_dbs
+    }
+    task_data.kwargs.workflow = workflow;
     task_data.args = form_data.args;
     task_data.tags = [temp]
+    if(!form_data.flags==""){
+        task_data.kwargs.runflags=form_data.flags;
+    }
     task_data.kwargs.functional_gene = total_fgs_dbs
+    
     $('#task_result').empty();
     $.postJSON(task_url,task_data,function(data){
         //Set Quality control status
@@ -458,7 +487,7 @@ function poll() {
                 if (data.result.status=="SUCCESS"){
                   set_workflow_status('qc',{status:data.result.status,progress_display:"none",success_display:"inline"});
                   $('#qc').addClass("success");
-                  subtask_poll(data);
+                  subtask_poll(data.result);
 
 
                 }else{
@@ -467,14 +496,47 @@ function poll() {
                 };
                 temp = data.result;
                 delete temp.children;
+                temp.data = temp.result.result_url
+                delete temp.result
+                //temp.result = temp.data;
+                //delete temp.data            
                 result_obj=temp;
                 $('#task_result').append("<pre>" + JSON.stringify(temp,null, 4) + "</pre>");
                 $('#task_result').urlize();
             };
        }});
 };
-function subtask_poll(data){
-  children = data.result.children;
+function subtask_poll(data){    
+  total_fgs=0;
+  $.each(data.result.subtasks,function(idx,value){
+    if (value.task=="mgmicq.tasks.tasks.mgmic_16s_classification"){
+        total_subtasks++;
+        poll_subtask(value.task_id,'s16');
+        set_workflow_status("s16",{status:"PENDING",progress_display:"inline",success_display:"none"});
+    }
+    if (value.task=="mgmicq.tasks.tasks.mgmic_assembly_ray"){
+        total_subtasks++;
+        poll_subtask(value.task_id,'aray');
+        set_workflow_status("aray",{status:"PENDING",progress_display:"inline",success_display:"none"});
+    }
+    if (value.task=="mgmicq.tasks.tasks.mgmic_functional_gene"){
+        total_subtasks++;
+        total_fgs++;
+        sts="PENDING " + curent_fgs + " out of " + total_fgs + " Completed"
+        set_workflow_status("fgs",{status:sts,progress_display:"inline",success_display:"none"});
+        poll_subtask(value.task_id,'fgs');
+    }
+    if (value.task=="mgmicq.tasks.tasks.generate_report"){
+        set_workflow_status("report",{status:"WAITING",progress_display:"none",success_display:"none"});
+        poll_subtask(value.task_id,'report');
+    }
+
+  });
+  if (total_fgs==0){
+    set_workflow_status("fgs",{status:"None Submitted.",progress_display:"none",success_display:"none"});
+  }
+
+  /*children = data.result.children;
   len = children.length;
   idx=0;
   try{
@@ -509,22 +571,30 @@ function subtask_poll(data){
     set_workflow_status("fgs",{status:"None Submitted.",progress_display:"none",success_display:"none"});
   }
 
-  $.each(fgs_id,function(idx,value){ poll_subtask(value,'fgs') });
+  $.each(fgs_id,function(idx,value){ poll_subtask(value,'fgs') });*/
 };
 function poll_subtask(task_id,html_id){
-   $.ajax({ url:"http://mgmic.oscer.ou.edu/api/queue/task/" + task_id + "/.json" , success: function(data) {
+   $.ajax({ url: base_url + "/queue/task/" + task_id + "/.json" , success: function(data) {
         if (data.status=="PENDING"){
           if(html_id=="fgs"){
             sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed";
             set_workflow_status(html_id,{status:sts,progress_display:"inline",success_display:"none"});
+          }else if(html_id=="report"){
+           set_workflow_status("report",{status:"WAITING",progress_display:"none",success_display:"none"});     
           }else{
             set_workflow_status(html_id,{status:data.status,progress_display:"inline",success_display:"none"});
           }
           setTimeout(function() { poll_subtask(task_id,html_id); }, 3000);
         }else if (data.status=="RETRY"){
-          setTimeout(function() { poll_subtask(data.children[0][0][0],html_id); }, 3000);
+          if (total_sub_done==total_subtasks){
+            set_workflow_status("report",{status:"PENDING",progress_display:"inline",success_display:"none"});
+          }else{
+            set_workflow_status("report",{status:"WAITING",progress_display:"none",success_display:"none"});
+          }
+          setTimeout(function() { poll_subtask(task_id,html_id); }, 3000);
         }else{
           if (data.status=="SUCCESS"){
+            total_sub_done++;
             if(html_id=="fgs"){
               curent_fgs = curent_fgs +1;
               sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed";
@@ -536,19 +606,22 @@ function poll_subtask(task_id,html_id){
                   set_workflow_status(html_id,{status:sts,progress_display:"inline",success_display:"none"});
               }
             }else if(html_id=="report"){
-              data_url = result_obj.result;
+              //data_url = result_obj.data;
               data_report_url = data.result;
-              delete result_obj.result;
+              //delete result_obj.result;
               result_obj.data=data_url;
               result_obj.report= data_report_url;
               $('#task_result').empty();
               $('#task_result').append("<pre>" + JSON.stringify(result_obj,null, 1) + "</pre>");
               $('#task_result').urlize();
+              set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"inline"});
+              $('#' + html_id).addClass("success");
             }else{
               set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"inline"});
               $('#' + html_id).addClass("success");
             }
           }else{
+            total_sub_done++;
             if(html_id=="fgs"){
               sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed";
               set_workflow_status(html_id,{status:sts,progress_display:"none",success_display:"none"});
@@ -666,7 +739,7 @@ function setTaskDisplay(data){
 };
 function showResult(task_id){
     //set iframe url
-    iframe_url = 'http://mgmic.oscer.ou.edu/portal/history_result_meta.html?task_id=' + task_id //257fc120-ff53-495d-95c0-246ebc85e20e
+    iframe_url = 'history_result_meta.html?task_id=' + task_id //257fc120-ff53-495d-95c0-246ebc85e20e
     template =  Handlebars.templates['tmpl-iframe'];
     $('#my-modal-body').append(template({}));
     $('#myIframe').attr('src',iframe_url);
