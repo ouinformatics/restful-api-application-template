@@ -1,0 +1,215 @@
+<div id="task_submit">
+  <div class="row">
+    <div class="col-sm-9 form-group">
+            <label for="sample-type">Sample Type</label>
+            <label class="radio-inline active">
+              <input type="radio" name="sample-type" value="metagenome" checked="">Metagenome
+            </label>
+            <label class="radio-inline">
+              <input type="radio" name="sample-type" value="amplicon">Amplicon
+            </label>
+        </div>
+    </div>
+ <div id="hide_metagenomic">
+  <form class="col-sm-12 form1" id="task_form" onsubmit="return task_submit();">
+      <div style="display:none">
+          <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
+          <input type="hidden" name="sample-type" value="metagenome"/>
+     </div>
+    <div class="row">
+        <div class="col-sm-4 form-group required">
+          <label class="control-label" for="sample_name">Sample Name</label>
+          <input id="sample_name" type="text" class="form-control input-sm" name="sample_name" placeholder="Name" >
+        </div>
+    </div>
+    <div class="row">
+      <div class="col-sm-4 form-group" style="padding-top:5px;">
+        <label for="fgs">Functional Gene Search</label>
+
+        <input id="visual_fgs" type="text" class="form-control input-sm col-sm-2"  value="" style="float:right " readonly/>
+      </div>
+      <div id="colsm3" class="form-group float-btn">
+        <button id="fgs_btn" type="button" class="btn btn-default">Select Gene Database</button>
+      </div>
+    </div>
+    <div id="customize">
+        <a href="#" onclick="$('.cwork').toggle('slow');"><b>Customize Workflow</b></a>
+        <div class="row cwork" style="display:none">
+          <div class="col-sm-9 form-group">
+            <label  for="corrosion">On/Off</label>&nbsp;&nbsp;
+            <label class="radio-inline">
+              <input type="checkbox" name="qc" value="on" checked>&nbsp; Quality Control
+            </label>
+            <label class="radio-inline">
+              <input type="checkbox" name="s16" value="on" checked>&nbsp; 16S Classification
+            </label>
+            <label class="radio-inline">
+              <input type="checkbox" name="assemble" value="on" checked>&nbsp; Assemble
+            </label>
+          </div>
+        </div>
+        <div class="row cwork" style="display:none">
+           <div class="col-sm-9 form-group">    
+            <label for="flags">Run Flags</label>&nbsp;
+            <label class="radio-inline">
+              <input type="text" name="flags" class="form-control input-sm"  placeholder="Flags">
+            </label>
+           </div>
+        </div>
+    </div>
+    <div role="tabpanel" class="tabbable" style="clear:both;" >
+     <ul id='myTa' class="nav nav-tabs  " role="tablist">
+        <li role="presentation" class="active"><a href="#url" aria-controls="url" role="tab" data-toggle="tab">Data Url</a></li>
+        <li role="presentation"><a href="#upload" aria-controls="upload" role="tab" data-toggle="tab">Upload Data</a></li>
+      </ul>
+      <div id="myTabContent1" class="tab-content" style="margin-bottom:0px">
+        <div role="tabpanel" class="tab-pane fade in active" id="url">
+            <div class="row">
+                <div class="form-group required col-sm-9">
+                    <label class="control-label" for="args">Forward Read URL</label>
+                    <input id="foward_url" type="text" class="form-control input-sm" name="args" placeholder="Forward Read URL" >
+                </div>
+            </div>
+            <div class="row">
+               <div class="form-group required col-sm-9">
+                    <label class="control-label" for="args">Reverse Read URL</label>
+                    <input id="reverse_url" type="text" class="form-control input-sm" name="args" placeholder="Reverse Read URL" >
+                </div>
+            </div>
+            <button type="submit" id="form_submit" class="btn btn-default pull-right">Submit Sample</button>
+           </form>
+        </div>
+        <div role="tabpanel" class="tab-pane fade" id="upload">
+            <form class="col-sm-12 form1" id="task_form_file" onsubmit="return task_submit_file();">
+                <div style="display:none">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
+                </div>
+                <div class="row">
+                    <div class="form-group required col-sm-9">
+                        <label class="control-label" for="args">Forward Read File</label>
+                        <input type="file" class="form-control file-form-control input-sm" name="forward_file" placeholder="Forward Read File" >
+                    </div>
+                </div>
+                <div class="row">
+                   <div class="form-group required col-sm-9">
+                        <label class="control-label" for="args">Reverse Read File</label>
+                        <input type="file" class="form-control file-form-control input-sm" name="reverse_file" placeholder="Reverse Read File" >
+                    </div>
+                </div>
+                <button type="submit" id="form_submit" class="btn btn-default pull-right">Submit Sample</button>
+             </form>
+          </div>
+     </div>
+  </div>
+ </div> <!--End of metgenomic-->
+ <div id="hide_amplicon">
+    <form class="col-sm-12 form1" id="amplicon_form1" onsubmit="return false;">
+      <div style="display:none">
+        <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
+        <input type="hidden" name="sample-type" value="amplicon"/>
+      </div>
+      <div class="row">
+        <div class="col-sm-4 form-group required">
+          <label class="control-label" for="sample_name">Sample Name</label>
+          <input id="amplicon_sample_name" type="text" class="form-control input-sm" name="sample_name" placeholder="Name" >
+        </div>
+     </div>
+     <div id="amplicon_customize">
+        <a href="#" onclick="$('.acwork').toggle('slow');"><b>Customize Workflow</b></a>
+        <div class="row acwork" style="display:none">
+           <div class="col-sm-9 form-group">
+            <label for="flags">Run Flags</label>&nbsp;
+            <label class="radio-inline">
+              <input type="text" name="flags" class="form-control input-sm"  placeholder="Flags">
+            </label>
+           </div>
+        </div>
+     </div>
+
+
+    <div role="tabpanel" class="tabbable" style="clear:both;" >
+     <ul id='myTa' class="nav nav-tabs  " role="tablist">
+        <li role="presentation" class="active"><a href="#url1" aria-controls="url" role="tab" data-toggle="tab">Data Url</a></li>
+        <li role="presentation"><a href="#upload1" aria-controls="upload" role="tab" data-toggle="tab">Upload Data</a></li>
+      </ul>
+      <div id="myTabContent2" class="tab-content" style="margin-bottom:0px">
+        <div role="tabpanel" class="tab-pane fade in active" id="url1">
+          <div class="row step2">
+                <div class="form-group required col-sm-9">
+                    <label class="control-label" for="args">Forward Read URL</label>
+                    <input id="amplicon_foward_url" type="text" class="form-control input-sm" name="args" placeholder="Forward Read URL" >
+                </div>
+            </div>
+            <div class="row step2">
+               <div class="form-group required col-sm-9">
+                    <label class="control-label" for="args">Reverse Read URL</label>
+                    <input id="amplicon_reverse_url" type="text" class="form-control input-sm" name="args" placeholder="Reverse Read URL" >
+                </div>
+            </div>
+          <div class="row">
+              <div class="form-group required col-sm-9">
+                  <label class="control-label" for="args">Map File URL</label>
+              </div>
+              <div class="step2 form-group col-sm-9">
+                  <label class="step2_label">Map File</label>
+              </div>
+          </div>
+          <div class="row step1">
+            <div class="form-group form-inline col-sm-9">
+                  <input style="width:70%" id="map_url" type="text" class="form-control input-sm" name="args" placeholder="Map File URL" >
+                  <button style="width:130px" id="check_map_url" class="btn btn-default">Check Map File</button>
+                    <img src="spinner.gif" id="check_map_url_spinner" height="20" width="20" style="display:none;margin-left:1px;">
+              </div>
+          </div>
+            <button type="submit" id="amplicon_url_form_submit" class="step2 btn btn-default pull-right">Submit Sample</button>
+           </form>
+        </div>
+        <div role="tabpanel" class="tab-pane fade" id="upload1">
+            <form class="col-sm-12 form1" id="amplicon_task_form_file" onsubmit="return false;">
+                <div class="row step2">
+                    <div class="form-group required col-sm-9">
+                        <label class="control-label" for="args">Forward Read File</label>
+                        <input type="file" class="form-control file-form-control input-sm" name="forward_file" placeholder="Forward Read File" >
+                    </div>
+                 </div>
+                 <div class="row step2">
+                   <div class="form-group required col-sm-9">
+                        <label class="control-label" for="args">Reverse Read File</label>
+                        <input type="file" class="form-control file-form-control input-sm" name="reverse_file" placeholder="Reverse Read File" >
+                    </div>
+                 </div>
+                <div style="display:none">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrftoken }}"/>
+                </div>
+                <div class="row">
+                    <div class="form-group required col-sm-9">
+                        <label class="control-label" for="args">Map File</label>
+                    </div>
+                    <div class="step2 form-group col-sm-9">
+                        <label class="step2_label">Map File</label>
+                    </div>
+                </div>
+                 <div class="row step1">
+                    <div class="form-group form-inline col-sm-9">
+                    <input style="width:70%" id="map_file" type="file" class="form-control file-form-control input-sm col-sm-7" name="map_file" placeholder="Map File" >
+                        <button  style="width:130px" id="check_map_file" class="btn btn-default">Check Map File</button>
+                        <img src="spinner.gif" id="check_map_file_spinner" height="20" width="20" style="margin-left:1px;display:none;">
+                    </div>
+                 </div>
+                 <button type="submit" id="amplicon_file_form_submit" class="step2 btn btn-default pull-right">Submit Sample</button>
+            </form>
+        </div>
+      </div>
+    </div>
+ </div> <!--End of amplicon-->
+</div>
+<div id="output">
+  <h3>Sample Submitted</h3>
+  <button id="newSample" type="button" class="btn btn-default" style="float:right;margin-right:20px;" disabled>Submit Another Sample</button>
+  <div id="file-up" class="col-md-9">
+    <h4>File Upload</h4>
+    <div class="progress">
+      <div class="bar"></div>
+      <div class="percent">0%</div>
+    </div>
+  </div><div id="results" class="col-md-9" style="clear:both;"><div id="result_title" class"form-inline"></div><div id="task_result"></div></div></div>
