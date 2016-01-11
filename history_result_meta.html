@@ -45,6 +45,10 @@
       </table>
     </div>
     <div id="task_result"></div>
+    <div>
+        <a href="#" onclick="$('#details').toggle('slow');"><b>Workflow Parameters</b></a>
+        <div id="details" style="display: none;"></div>
+    </div>
 </body>
 <script src="bower_components/jquery/dist/jquery.min.js"></script>
 <script type="text/javascript" src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
@@ -56,10 +60,11 @@
 $(function() {
     qs = $.parseQuerystring();
     $('.panel-heading span').text(" Task ID: " + qs.task_id )
-    total_fgs=0;curent_fgs=0;
+    total_fgs=0;curent_fgs=0;total_subtasks=0;total_sub_done=0;
     poll_url = "/api/queue/task/" + qs.task_id + "/.json";
     result_obj=null;
     poll();
+    param=null;
 });
 function set_workflow_status(id,data){
     temp = Handlebars.templates['tmpl-status']
@@ -67,7 +72,15 @@ function set_workflow_status(id,data){
 }
 function poll() {
        $.ajax({ url:poll_url , success: function(data) {
-            //console.log(data);
+            param = {};
+            param.task_id = data.task_id;
+            param.task_name = data.task_name;
+            param.timestamp = data.timestamp;
+            param.tags = data.tags;
+            param.args = data.args;
+            param.kwargs = data.kwargs;
+            //delete param.result
+            $("#details").append("<pre>" + JSON.stringify(param,null, 4) + "</pre>")
             if (data.result.status=="PENDING"){
                 $('#task_result').empty();
                 $('#task_result').append("<pre>" + JSON.stringify(data.result,null, 4) + "</pre>")
@@ -77,7 +90,7 @@ function poll() {
                 if (data.result.status=="SUCCESS"){
                   set_workflow_status('qc',{status:data.result.status,progress_display:"none",success_display:"inline"})
                   $('#qc').addClass("success")
-                  subtask_poll(data)
+                  subtask_poll(data.result)
                 }else{
                   set_workflow_status('qc',{status:data.result.status,progress_display:"none",success_display:"none"})
                   $('#qc').addClass("danger")
@@ -85,6 +98,8 @@ function poll() {
                 $('#task_result').empty();
                 temp = data.result;
                 delete temp.children;
+                temp.data = temp.result.result_url
+                delete temp.result
                 result_obj=temp;
                 $('#task_result').append("<pre>" + JSON.stringify(temp,null, 4) + "</pre>");
                 $('#task_result').urlize();
@@ -94,99 +109,95 @@ function poll() {
        }});
 }
 function subtask_poll(data){
-  children = data.result.children
-  len = children.length;
-  idx=0
-  //total_fgs = len-3
-  try{
-    s16_id =children[1][0][0]
-    idx++;
-    poll_subtask(s16_id,'s16');
-  }catch(err) {
-    sts = "No subtask for 16S Classification"
-    set_workflow_status("s16",{status:sts,progress_display:"none",success_display:"none"})
-  }
-  try{
-    aray_id = children[0][0][0]
-    idx++;
-    poll_subtask(aray_id,'aray');
-  }catch(err) {
-    sts = "No subtask for Assemble Ray"
-    set_workflow_status("aray",{status:sts,progress_display:"none",success_display:"none"})
-  }
-  try{
-    report_id=children[len-1][0][0]
-    poll_subtask(report_id,'report');
-  }catch(err){
-    sts="No subtask for report generation"
-    set_workflow_status("report",{status:sts,progress_display:"none",success_display:"none"});
-  }
-  //s16_id =children[1][0][0]
-  //aray_id = children[0][0][0]
-  fgs_id=[]
-  for (i = idx; i < len -2 ; i++) {
-    total_fgs++;
-    fgs_id.push(children[i][0][0])
-  }
-  if (fgs_id.length==0){
+  total_fgs=0;
+  $.each(data.result.subtasks,function(idx,value){
+    if (value.task=="mgmicq.tasks.tasks.mgmic_16s_classification"){
+        total_subtasks++;
+        poll_subtask(value.task_id,'s16');
+        set_workflow_status("s16",{status:"PENDING",progress_display:"inline",success_display:"none"});
+    }
+    if (value.task=="mgmicq.tasks.tasks.mgmic_assembly_ray"){
+        total_subtasks++;
+        poll_subtask(value.task_id,'aray');
+        set_workflow_status("aray",{status:"PENDING",progress_display:"inline",success_display:"none"});
+    }
+    if (value.task=="mgmicq.tasks.tasks.mgmic_functional_gene"){
+        total_subtasks++;
+        total_fgs++;
+        sts="PENDING " + curent_fgs + " out of " + total_fgs + " Completed"
+        set_workflow_status("fgs",{status:sts,progress_display:"inline",success_display:"none"});
+        poll_subtask(value.task_id,'fgs');
+    }
+    if (value.task=="mgmicq.tasks.tasks.generate_report"){
+        set_workflow_status("report",{status:"WAITING",progress_display:"none",success_display:"none"});
+        poll_subtask(value.task_id,'report');
+    }
+
+  });
+  if (total_fgs==0){
     set_workflow_status("fgs",{status:"None Submitted.",progress_display:"none",success_display:"none"});
   }
-  $.each(fgs_id,function(idx,value){ poll_subtask(value,'fgs') });
 }
 function poll_subtask(task_id,html_id){
-   $.ajax({ url:"/api/queue/task/" + task_id + "/.json" , success: function(data) {
+   $.ajax({ url: "/api/queue/task/" + task_id + "/.json" , success: function(data) {
         if (data.status=="PENDING"){
           if(html_id=="fgs"){
-            sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed"
-            set_workflow_status(html_id,{status:sts,progress_display:"inline",success_display:"none"})
+            sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed";
+            set_workflow_status(html_id,{status:sts,progress_display:"inline",success_display:"none"});
+          }else if(html_id=="report"){
+           set_workflow_status("report",{status:"WAITING",progress_display:"none",success_display:"none"});
           }else{
-            set_workflow_status(html_id,{status:data.status,progress_display:"inline",success_display:"none"})
+            set_workflow_status(html_id,{status:data.status,progress_display:"inline",success_display:"none"});
           }
           setTimeout(function() { poll_subtask(task_id,html_id); }, 3000);
         }else if (data.status=="RETRY"){
-          //console.log(data.children[0][0][0]);
-          setTimeout(function() { poll_subtask(data.children[0][0][0],html_id); }, 3000);
+          if (total_sub_done==total_subtasks){
+            set_workflow_status("report",{status:"PENDING",progress_display:"inline",success_display:"none"});
+          }else{
+            set_workflow_status("report",{status:"WAITING",progress_display:"none",success_display:"none"});
+          }
+          setTimeout(function() { poll_subtask(task_id,html_id); }, 3000);
         }else{
           if (data.status=="SUCCESS"){
+            total_sub_done++;
             if(html_id=="fgs"){
               curent_fgs = curent_fgs +1;
-              sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed"
+              sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed";
               if (curent_fgs == total_fgs){
-                  set_workflow_status(html_id,{status:sts,progress_display:"none",success_display:"inline"})
-                  $('#' + html_id).addClass("success")
+                  set_workflow_status(html_id,{status:sts,progress_display:"none",success_display:"inline"});
+                  $('#' + html_id).addClass("success");
               }else{
-                  sts = "PENDING " + curent_fgs + " out of " + total_fgs + " Completed"
-                  set_workflow_status(html_id,{status:sts,progress_display:"inline",success_display:"none"})
+                  sts = "PENDING " + curent_fgs + " out of " + total_fgs + " Completed";
+                  set_workflow_status(html_id,{status:sts,progress_display:"inline",success_display:"none"});
               }
             }else if(html_id=="report"){
-               data_url = result_obj.result;
-               data_report_url = data.result;
-               delete result_obj.result;
-               result_obj.data=data_url;
-               result_obj.report= data_report_url;
-               //result_obj.result ={"data":data_url,"report":data_report_url}
-               $('#task_result').empty();
-               $('#task_result').append("<pre>" + JSON.stringify(result_obj,null, 1) + "</pre>");
-               $('#task_result').urlize();
-               set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"inline"})
-               $('#' + html_id).addClass("success")
+              //data_url = result_obj.data;
+              data_report_url = data.result;
+              //delete result_obj.result;
+              //result_obj.data=data_url;
+              result_obj.report= data_report_url;
+              $('#task_result').empty();
+              $('#task_result').append("<pre>" + JSON.stringify(result_obj,null, 1) + "</pre>");
+              $('#task_result').urlize();
+              set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"inline"});
+              $('#' + html_id).addClass("success");
             }else{
-              set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"inline"})
-              $('#' + html_id).addClass("success")
+              set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"inline"});
+              $('#' + html_id).addClass("success");
             }
           }else{
+            total_sub_done++;
             if(html_id=="fgs"){
-              sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed"
-              set_workflow_status(html_id,{status:sts,progress_display:"none",success_display:"none"})
-              $('#' + html_id).addClass("danger")
+              sts = data.status + " " + curent_fgs + " out of " + total_fgs + " Completed";
+              set_workflow_status(html_id,{status:sts,progress_display:"none",success_display:"none"});
+              $('#' + html_id).addClass("danger");
             }else{
-              set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"none"})
-              $('#' + html_id).addClass("danger")
+              set_workflow_status(html_id,{status:data.status,progress_display:"none",success_display:"none"});
+              $('#' + html_id).addClass("danger");
             }
           }
         }}});
-
-}
+};
 jQuery.fn.urlize = function() {
     if (this.length > 0) {
         this.each(function(i, obj){

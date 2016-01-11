@@ -9,7 +9,7 @@ $(function() {
     user_url = base_url + "/user/?format=json";
     task_url = base_url + "/queue/run/mgmicq.tasks.tasks.mgmic_qc_workflow/.json";
     task_url_file = base_url + "/queue/file-upload/";
-    gene_database_url = base_url + "/catalog/data/data_portal/gene_database/.json?page_size=0"
+    gene_database_url = base_url + "/catalog/data/data_portal/gene_database/.json?query={'spec':{},'sort':[('name',1)]}&page_size=0"
     task_data = {"function": "mgmicq.tasks.tasks.mgmic_qc_workflow","queue": "celery","args":[],"kwargs":{},"tags":[]};
     amplicon_data = {"function": "mgmicq.tasks.tasks.amplicon_workflow","queue": "celery","args":[],"kwargs":{},"tags":[]};
     prevlink=null;nextlink=null;poll_url="";total_fgs=null;curent_fgs=0;result_obj=null;total_subtasks=0;total_sub_done=0
@@ -333,6 +333,7 @@ function check_map_submit_url(){
 function load_gene_database(){
   $.getJSON(gene_database_url,function(data){
     temp=[];
+    //data.results.sort();
     $.each(data.results,function(key,value){
       $('#all_dbs')
           .append($("<option></option>")
@@ -346,6 +347,8 @@ function load_gene_database(){
           .text(value.name));
         }
     });
+    //slist = $('#all_dbs options');
+    
     $('#visual_fgs').val(temp.join(', '));
     total_fgs_dbs=temp;
   });
@@ -609,7 +612,7 @@ function poll_subtask(task_id,html_id){
               //data_url = result_obj.data;
               data_report_url = data.result;
               //delete result_obj.result;
-              result_obj.data=data_url;
+              //result_obj.data=data_url;
               result_obj.report= data_report_url;
               $('#task_result').empty();
               $('#task_result').append("<pre>" + JSON.stringify(result_obj,null, 1) + "</pre>");
@@ -737,12 +740,16 @@ function setTaskDisplay(data){
     };
 
 };
-function showResult(task_id){
+function showResult(task_id,task_name){
     //set iframe url
-    iframe_url = 'history_result_meta.html?task_id=' + task_id //257fc120-ff53-495d-95c0-246ebc85e20e
+    if (task_name=="Metagenome Workflow"){
+        iframe_url = 'history_result_meta.html?task_id=' + task_id //257fc120-ff53-495d-95c0-246ebc85e20e
+    }else{
+        iframe_url = 'default_result_meta.html?task_id=' + task_id + '&task_name=' + task_name.replace(" ","-").replace(".","-")
+    }
     template =  Handlebars.templates['tmpl-iframe'];
-    $('#my-modal-body').append(template({}));
-    $('#myIframe').attr('src',iframe_url);
+    $('#my-modal-body').append(template({'url':iframe_url }));
+    //$('#myIframe').attr('src',iframe_url);
     $("#myModal").modal('show');
 };
 function select_fgs(){
